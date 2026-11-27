@@ -118,9 +118,11 @@ function rateCss() { if (document.getElementById('rtcss')) return; const c = doc
     '.rcard{border:1px solid var(--accent);border-radius:14px;padding:14px;background:var(--panel);display:grid;gap:12px;margin-bottom:6px}.rcard .rt{display:flex;gap:12px;align-items:flex-start}.rcard b{font:700 19px var(--display)}.rcard p{margin:3px 0 0;color:var(--muted);font-size:14px}' +
     '.rcard .rb{display:flex;gap:8px;flex-wrap:wrap}.rcard .rb a{flex:1;justify-content:center;text-decoration:none;min-height:44px}.rcard .rb button{min-height:44px}.rrow{display:flex;gap:12px;align-items:center;margin-top:12px;border-top:1px solid var(--line);padding-top:12px;text-decoration:none;color:inherit}.rrow .rs{width:34px;height:34px}.rrow .rstar{width:28px;height:28px}.rrow span{display:grid;gap:2px}.rrow small{color:var(--muted)}';
   document.head.appendChild(c); }
-function rateCard() { const url = rateUrl(); if (!url) return ''; const r = rateSt(); if (r.done && !/[?&]rate=1/.test(location.search)) return '';
-  const chs = Object.values(LIB).filter(c => !c.demo && !c.lib).length, days = (Date.now() - r.first) / 864e5;
-  const due = /[?&]rate=1/.test(location.search) || ((chs >= 3 || days >= 5) && (r.n || 0) < 3 && (!r.snooze || Date.now() > r.snooze));
+function rateCard() { const url = rateUrl(); if (!url) return ''; const r = rateSt(), force = /[?&]rate=1/.test(location.search); if (r.final && !force) return '';
+  const chs = Object.values(LIB).filter(c => !c.demo && !c.lib).length, now = Date.now();
+  if (r.done && !r.doneAt) { r.doneAt = now; rateSave(r); }
+  // 1.ª vez: al tener el primer capítulo. «Not now»: otra vez a los 3 capítulos o a los 2 días (máx. 3). Tras «Rate»/«I already did»: una última vez al mes.
+  const due = force || (r.done ? now > r.doneAt + 30 * 864e5 : !r.n ? chs >= 1 : (r.n < 3 && (now > (r.snooze || 0) || chs >= Math.max(3, (r.chAt || 0) + 2))));
   if (!due) return ''; rateCss(); rate5Css();
   const st5 = [0, 1, 2, 3, 4].map(i => `<svg class="s5" style="animation-delay:${i * 0.12}s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>`).join('');
   return `<div class="rcard r5" id="rcard"><b>Enjoying the book?</b>
@@ -139,13 +141,13 @@ function rate5Css() { if (document.getElementById('r5css')) return; const c = do
   document.head.appendChild(c); }
 function rateRow() { const url = rateUrl(); if (!url) return ''; rateCss(); return `<a class="rrow" id="rrow" href="${url}" target="_blank" rel="noopener"><span class="rs">${STAR}</span><span><b>Rate this book on Amazon</b><small>Every review helps us keep making books like this one.</small></span></a>`; }
 function wireRate() { const ev = t => { try { if (typeof gcEvt === 'function') gcEvt(MODE + ': review ' + t); } catch (e) {} };
-  const done = t => { const r = rateSt(); r.done = 1; rateSave(r); ev(t); const c = $('rcard'); if (c) c.remove(); };
+  const done = t => { const r = rateSt(); if (r.done) r.final = 1; else { r.done = 1; r.doneAt = Date.now(); } rateSave(r); ev(t); const c = $('rcard'); if (c) c.remove(); };
   const g = $('rgo'); if (g) g.addEventListener('click', () => done('click'));
   const g2 = $('rgo2'); if (g2) g2.addEventListener('click', () => done('click'));
   const d = $('rdid'); if (d) d.onclick = () => done('already');
-  const no = $('rno'); if (no) no.onclick = () => { const r = rateSt(); r.n = (r.n || 0) + 1; r.snooze = Date.now() + 14 * 864e5; rateSave(r); ev('not now'); const c = $('rcard'); if (c) c.remove(); };
+  const no = $('rno'); if (no) no.onclick = () => { const r = rateSt(); if (r.done) r.final = 1; else { r.n = (r.n || 0) + 1; r.snooze = Date.now() + 2 * 864e5; r.chAt = Object.values(LIB).filter(c => !c.demo && !c.lib).length; } rateSave(r); ev('not now'); const c = $('rcard'); if (c) c.remove(); };
   const w = $('rrow'); if (w) w.addEventListener('click', () => ev('menu click'));
-  if ($('rcard')) ev('card shown'); }
+  if ($('rcard')) ev('card shown' + (rateSt().done ? ' (last try)' : '')); }
 // ---------------- afinador por micrófono (guitarra, bajo, ukelele). Todo se analiza en el móvil; no se graba nada.
 // Diseño: arco de −50 a +50 cents, nota grande con su octava y el clavijero del instrumento con una etiqueta por cuerda.
 const TUN_INST = (typeof BOOK_INST !== 'undefined' && BOOK_INST === 'uke') ? 'uke' : MODE;
