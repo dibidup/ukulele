@@ -121,13 +121,27 @@ function rateCss() { if (document.getElementById('rtcss')) return; const c = doc
 function rateCard() { const url = rateUrl(); if (!url) return ''; const r = rateSt(); if (r.done && !/[?&]rate=1/.test(location.search)) return '';
   const chs = Object.values(LIB).filter(c => !c.demo && !c.lib).length, days = (Date.now() - r.first) / 864e5;
   const due = /[?&]rate=1/.test(location.search) || ((chs >= 3 || days >= 5) && (r.n || 0) < 3 && (!r.snooze || Date.now() > r.snooze));
-  if (!due) return ''; rateCss();
-  return `<div class="rcard" id="rcard"><div class="rt"><span class="rs">${STAR}</span><span><b>Enjoying the book?</b><p>Every review helps us keep making books and apps like this one. Thank you, we really appreciate it!</p></span></div>
-    <div class="rb"><a class="btn" id="rgo" href="${url}" target="_blank" rel="noopener">Write a review</a><button class="btn ghost" id="rno">Not now</button><button class="btn ghost" id="rdid">I already did</button></div></div>`; }
+  if (!due) return ''; rateCss(); rate5Css();
+  const st5 = [0, 1, 2, 3, 4].map(i => `<svg class="s5" style="animation-delay:${i * 0.12}s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>`).join('');
+  return `<div class="rcard r5" id="rcard"><b>Enjoying the book?</b>
+    <a class="stars5" id="rgo" href="${url}" target="_blank" rel="noopener" aria-label="Rate this book on Amazon">${st5}</a>
+    <p>Rate it on Amazon: <b>just tap the stars</b>. It takes 10 seconds, no need to write anything.</p>
+    <small>Every rating helps a small independent author keep making books and apps like this one. Thank you!</small>
+    <a class="btn rbig" id="rgo2" href="${url}" target="_blank" rel="noopener">★ Rate this book</a>
+    <div class="rlinks"><button id="rno">Not now</button><span>·</span><button id="rdid">I already did</button></div></div>`; }
+function rate5Css() { if (document.getElementById('r5css')) return; const c = document.createElement('style'); c.id = 'r5css';
+  c.textContent = '@keyframes s5in{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.18);opacity:1}100%{transform:scale(1)}}@keyframes s5glow{0%,100%{filter:drop-shadow(0 0 2px #ffd34d)}50%{filter:drop-shadow(0 0 9px #ffd34d)}}' +
+    '.r5{text-align:center;justify-items:center}.r5>b{font:700 21px var(--display)}.r5 p{margin:0;font-size:15px}.r5 small{color:var(--muted);font-size:12.5px;max-width:34em}' +
+    '.stars5{display:flex;gap:6px;justify-content:center;padding:6px 10px;border-radius:12px;text-decoration:none}.stars5:active{transform:scale(.97)}' +
+    '.s5{width:46px;height:46px;fill:#ffc83d;stroke:#fff3c4;stroke-width:.8;animation:s5in .5s ease-out both,s5glow 2.4s ease-in-out 1s infinite}' +
+    '.rbig{width:100%;max-width:360px;justify-content:center;text-decoration:none;min-height:54px;font-size:18px;font-weight:700;border-radius:14px;box-shadow:0 4px 18px rgba(255,200,61,.35)}' +
+    '.rlinks{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}.rlinks button{background:none;border:0;color:var(--muted);font:inherit;text-decoration:underline;padding:6px 4px;cursor:pointer;min-height:auto}';
+  document.head.appendChild(c); }
 function rateRow() { const url = rateUrl(); if (!url) return ''; rateCss(); return `<a class="rrow" id="rrow" href="${url}" target="_blank" rel="noopener"><span class="rs">${STAR}</span><span><b>Rate this book on Amazon</b><small>Every review helps us keep making books like this one.</small></span></a>`; }
 function wireRate() { const ev = t => { try { if (typeof gcEvt === 'function') gcEvt(MODE + ': review ' + t); } catch (e) {} };
   const done = t => { const r = rateSt(); r.done = 1; rateSave(r); ev(t); const c = $('rcard'); if (c) c.remove(); };
   const g = $('rgo'); if (g) g.addEventListener('click', () => done('click'));
+  const g2 = $('rgo2'); if (g2) g2.addEventListener('click', () => done('click'));
   const d = $('rdid'); if (d) d.onclick = () => done('already');
   const no = $('rno'); if (no) no.onclick = () => { const r = rateSt(); r.n = (r.n || 0) + 1; r.snooze = Date.now() + 14 * 864e5; rateSave(r); ev('not now'); const c = $('rcard'); if (c) c.remove(); };
   const w = $('rrow'); if (w) w.addEventListener('click', () => ev('menu click'));
